@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Todo</title>
+  <!-- Add any additional head elements here -->
+</head>
+<body>
+  <%- include("partials/header.ejs") %>
+  <%- include("partials/nav.ejs") %>
+
+  <div class="min-h-screen flex items-center justify-center bg-gray-100 py-8 px-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-md p-8">
+      <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Edit Todo</h1>
+      
+      <form action="/todo/edit/<%= todo._id %>" method="POST" class="space-y-6">
+        <div>
+          <label for="task" class="block text-gray-700 font-medium mb-2">Task</label>
+          <input 
+            type="text" 
+            id="task" 
+            name="task" 
+            value="<%= todo.task %>" 
+            required 
+            class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <button 
+            type="submit" 
+            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition">
+            Save Changes
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6">
+        <a href="/todo" 
+           class="block text-center text-blue-600 hover:underline">
+          Cancel
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <%- include("partials/footer.ejs") %>
+</body>
+</html>

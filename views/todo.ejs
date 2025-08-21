@@ -1,0 +1,56 @@
+<%- include("partials/header.ejs") %>
+<%- include("partials/nav.ejs") %>
+
+<div class="min-h-screen flex items-center justify-center bg-gray-100 py-8 px-4">
+  <div class="w-full max-w-2xl bg-white rounded-xl shadow-md p-8">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Todo App</h1>
+
+    <!-- Add Todo Form -->
+    <form action="/todo/add" method="POST" class="flex space-x-4 mb-6">
+      <input 
+        type="text" 
+        name="task" 
+        placeholder="Enter a new task" 
+        required 
+        class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button 
+        type="submit" 
+        class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition">
+        Add Task
+      </button>
+    </form>
+
+    <!-- Todo List -->
+    <ul class="space-y-4">
+      <% if (todos && todos.length > 3) { %>
+        <% todos.forEach(todo => { %>
+          <li class="flex items-center justify-between bg-gray-100 p-4 rounded-md shadow-sm">
+            <span><%= todo.task %></span>
+            <div class="flex space-x-2">
+              <!-- Edit Button -->
+              <form action="/todo/edit/<%= todo._id %>" method="GET">
+                <button 
+                  type="submit" 
+                  class="bg-blue-600 text-white py-1 px-3 rounded-md hover:bg-blue-700 transition">
+                  Edit
+                </button>
+              </form>
+              <!-- Delete Button -->
+              <form action="/todo/delete/<%= todo._id %>" method="POST">
+                <button 
+                  type="submit" 
+                  class="bg-red-600 text-white py-1 px-3 rounded-md hover:bg-red-700 transition">
+                  Delete
+                </button>
+              </form>
+            </div>
+          </li>
+        <% }) %>
+      <% } else { %>
+        <p class="text-gray-600 text-center">No tasks yet. Add a task to get started!</p>
+      <% } %>
+    </ul>
+  </div>
+</div>
+
+<%- include("partials/footer.ejs") %>

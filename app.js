@@ -1,81 +1,284 @@
 require("dotenv").config();
-const mongo = require("mongoose");
 const express = require("express");
 const session = require("express-session");
-const { default: mongoose } = require("mongoose")
 const bodyParser = require("body-parser");
+const MongoStore = require("connect-mongo");
+const { connectDB, getDB } = require("./model/connectionMongo");
+const bcrypt = require("bcrypt");
+const { ObjectId } = require("mongodb"); // Ensure ObjectId is imported
 
 const authRoutes = require("./server/routes/auth");
-const DB = require("./model/connectionSQL");
-const loginRoutes = require("./server/routes/login");
-
-
 
 const app = express();
 const PORT = 5000 || process.env.PORT;
-const MONGOURI = process.env.MONGO_URI
 
+// Connect to MongoDB
+connectDB();
+
+// Middleware
 app.use(express.static("public"));
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/", loginRoutes);
-app.use("/", authRoutes);
-app.use(session({
-    secret: process.env.SESSION_SECRET,
+
+// Configure session middleware with MongoDB
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "default_secret",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }
-  }));
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI || "mongodb://127.0.0.1:27017",
+      dbName: "nayttomongo",
+    }),
+    cookie: { secure: false }, // Set secure: true if using HTTPS
+  })
+);
 
-
-app.set("layout", "layouts/main");
+// Set view engine
 app.set("view engine", "ejs");
 
+// Middleware to protect routes
+function requireLogin(req, res, next) {
+  if (!req.session.user) {
+    return res.redirect("/"); // Redirect to the home page if not logged in
+  }
+  next();
+}
+
+// Routes
+app.use("/", authRoutes);
 
 app.get("", (req, res) => {
-    res.render("login");
+  res.render("login");
 });
 
-app.get("/dashboard", (req, res) => {
-    if (!req.session.user) {
-      return res.redirect("/login");
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
+// Protected route: Dashboard
+app.get("/dashboard", requireLogin, (req, res) => {
+  res.render("dashboard", { user: req.session.user });
+});
+
+// Change password route
+app.get("/change-password", requireLogin, (req, res) => {
+  res.render("change-password");
+});
+
+// Password change route
+app.post("/change-password", requireLogin, async (req, res) => {
+  const { old_password, new_password } = req.body;
+
+  if (!old_password || !new_password) {
+    return res.status(400).json({ error: "Both old and new passwords are required" });
+  }
+
+  const db = getDB();
+
+  try {
+    // Convert session user ID to ObjectId
+    const userId = new ObjectId(req.session.user.id);
+
+    // Find the user by their ObjectId
+    const user = await db.collection("users").findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-    res.render("dashboard", { user: req.session.user });
+
+    // Verify the old password
+    const isMatch = await bcrypt.compare(old_password, user.user_pass);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Old password is incorrect" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    // Update the user's password
+    await db.collection("users").updateOne(
+      { _id: userId },
+      { $set: { user_pass: hashedPassword } }
+    );
+
+    // Destroy the session and log the user out
+    req.session.destroy(() => {
+      res.redirect("/"); // Redirect to the login page after logout
+    });
+  } catch (err) {
+    console.error("Error changing password:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Logout route
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/"); // Redirect to the home page after logout
   });
+});
+
+app.get("/request-data", requireLogin, async (req, res) => {
+  const db = getDB();
+
+  try {
+    // Fetch user data from MongoDB
+    const user = await db.collection("users").findOne({ _id: new ObjectId(req.session.user.id) });
+
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    // Render the account data page with the user's data
+    res.render("account-data", {
+      user: {
+        user_id: user._id,
+        user_name: user.user_name,
+        created_at: user.created_at,
+        user_mode: user.user_mode,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching user data:", err);
+    res.status(500).send("Internal server error");
+  }
+});
+
+app.post("/delete-account", requireLogin, async (req, res) => {
+  const db = getDB();
+
+  try {
+    const userId = new ObjectId(req.session.user.id);
+
+    // Delete the user from the database
+    await db.collection("users").deleteOne({ _id: userId });
+
+    // Delete all todos linked to the user
+    await db.collection("todos").deleteMany({ user_id: req.session.user.id });
+
+    // Destroy the session after deleting the user and their todos
+    req.session.destroy(() => {
+      res.redirect("/"); // Redirect to the home page after account deletion
+    });
+  } catch (err) {
+    console.error("Error deleting user and todos:", err);
+    res.status(500).send("Failed to delete account");
+  }
+});
+
+// Fetch and display todos
+app.get("/todo", requireLogin, async (req, res) => {
+  const db = getDB();
+  const todos = await db.collection("todos").find({ user_id: req.session.user.id }).toArray();
+  res.render("todo", { user: req.session.user, todos, page: "todo" });
+});
+
+// Add a new todo
+app.post("/todo/add", requireLogin, async (req, res) => {
+  const { task } = req.body;
+  const db = getDB();
+  await db.collection("todos").insertOne({
+    user_id: req.session.user.id,
+    task,
+    created_at: new Date(),
+  });
+  res.redirect("/todo");
+});
+
+// Delete a todo
+app.post("/todo/delete/:id", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+
+  try {
+    // Convert the id to ObjectId
+    await db.collection("todos").deleteOne({
+      _id: new ObjectId(id), // Use the imported ObjectId
+      user_id: req.session.user.id,
+    });
+    res.redirect("/todo");
+  } catch (err) {
+    console.error("Error deleting todo:", err);
+    res.status(500).send("Failed to delete todo");
+  }
+});
+
+// Data request route
+app.get("/data", requireLogin, async (req, res) => {
+  const db = getDB();
+
+  try {
+    // Fetch data for the logged-in user
+    const data = await db.collection("data").find({ user_id: req.session.user.id }).toArray();
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: "No data found for this user" });
+    }
+
+    res.json({ data });
+  } catch (err) {
+    console.error("Error fetching data:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/todo/edit/:id", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const db = getDB();
+
+  try {
+    // Fetch the todo by its ID
+    const todo = await db.collection("todos").findOne({ _id: new ObjectId(id), user_id: req.session.user.id });
+
+    if (!todo) {
+      return res.status(404).send("Todo not found");
+    }
+
+    // Render the edit form
+    res.render("edit-todo", { todo });
+  } catch (err) {
+    console.error("Error fetching todo for edit:", err);
+    res.status(500).send("Failed to load edit form");
+  }
+});
+
+app.post("/todo/edit/:id", requireLogin, async (req, res) => {
+  const { id } = req.params;
+  const { task } = req.body;
+  const db = getDB();
+
+  try {
+    // Update the todo in the database
+    await db.collection("todos").updateOne(
+      { _id: new ObjectId(id), user_id: req.session.user.id },
+      { $set: { task } }
+    );
+
+    res.redirect("/todo");
+  } catch (err) {
+    console.error("Error updating todo:", err);
+    res.status(500).send("Failed to update todo");
+  }
+});
+
+app.post("/delete-user", requireLogin, async (req, res) => {
+  const db = getDB();
+
+  try {
+    // Delete the user from the database
+    await db.collection("users").deleteOne({ _id: new ObjectId(req.session.user.id) });
+
+    // Destroy the session after deleting the user
+    req.session.destroy(() => {
+      res.redirect("/"); // Redirect to the home page after deletion
+    });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).send("Failed to delete user");
+  }
+});
 
 app.listen(PORT, () => {
-    console.log(`App is listening ${PORT}`);
+  console.log(`App is listening on port ${PORT}`);
 });
-
-
-
-mongoose.connect(MONGOURI).then(()=> {
-    console.log("databesis connected fjdklaöfjkdla");
-})
-.catch((error) => console.log(error));
-
-
-const userSchema = new mongoose.Schema({
-    name: String,
-    age: Number,
-});
-
-const userModel = mongoose.model("users", userSchema);
-
-app.get("/getUsers", async(req, res) => {
-    const usersData = await userModel.find();
-    res.json(usersData);
-});
-
-function requireLogin(req, res, next) {
-    if (!req.session.user) {
-      return res.redirect("/login");
-    }
-    next();
-};
-
-  app.get("/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.redirect("/login");
-    });
-  });

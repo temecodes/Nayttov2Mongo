@@ -1,28 +1,65 @@
 const express = require("express");
+const bcrypt = require("bcrypt");
+const { getDB } = require("../../model/connectionMongo");
 const router = express.Router();
 
-const DB = require("../../model/connectionSQL");
+// LOGIN
+router.post("/login", async (req, res) => {
+  const { user_name, user_pass } = req.body;
 
-router.post("/login", (req, res) => {
-    const { user_name, user_pass } = req.body;
-  
-    if (!user_name || !user_pass) {
-      return res.status(400).json({ error: "Username and password required" });
-    }
-  
-    const sql = "SELECT * FROM users WHERE user_name = ? AND user_pass = ?";
-    DB.get(sql, [user_name, user_pass], (err, row) => {
-      if (err) return res.status(500).json({ error: "Internal error" });
-  
-      if (row) {
-        req.session.user = {
-          id: row.user_id,
-          name: row.user_name
-        };
-        return res.redirect("/dashboard"); 
-      } else {
-        return res.status(401).send("Invalid credentials");
-      }
-    });
+  if (!user_name || !user_pass) {
+    return res.status(400).json({ error: "Username and password required" });
+  }
+
+  const db = getDB();
+  const user = await db.collection("users").findOne({ user_name });
+
+  if (!user) {
+    return res.status(401).send("Invalid credentials");
+  }
+
+  const match = await bcrypt.compare(user_pass, user.user_pass);
+  if (match) {
+    req.session.user = {
+      id: user._id,
+      name: user.user_name,
+    };
+    return res.redirect("/dashboard");
+  } else {
+    return res.status(401).send("Invalid credentials");
+  }
+});
+
+// REGISTER
+router.post("/register", async (req, res) => {
+  const { user_name, user_pass } = req.body;
+
+  if (!user_name || !user_pass) {
+    return res.status(400).json({ error: "Username and password required" });
+  }
+
+  const db = getDB();
+  const existingUser = await db.collection("users").findOne({ user_name });
+
+  if (existingUser) {
+    return res.status(409).json({ error: "Username already taken" });
+  }
+
+  const hashedPass = await bcrypt.hash(user_pass, 10);
+
+  const result = await db.collection("users").insertOne({
+    user_name,
+    user_pass: hashedPass,
+    created_at: new Date(),
+    user_mode: "user",
   });
+
+  req.session.user = {
+    id: result.insertedId,
+    name: user_name,
+  };
+
+  res.redirect("/dashboard");
+});
+
 module.exports = router;
