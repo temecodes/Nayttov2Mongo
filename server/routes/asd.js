@@ -3,12 +3,12 @@ const bcrypt = require("bcrypt");
 const router = express.Router();
 const DB = require("../../model/connectionSQL");
 
-// Render the login/register page
+
 router.get("/login", (req, res) => {
-  res.render("login"); // This is your combined login+register view
+  res.render("login"); 
 });
 
-// Handle login
+
 router.post("/login", (req, res) => {
   const username = req.body.user_name;
   const password = req.body.user_pass;
@@ -34,7 +34,7 @@ router.post("/login", (req, res) => {
   });
 });
 
-// Handle register
+
 router.post("/register", async (req, res) => {
   const username = req.body.user_name;
   const password = req.body.user_pass;

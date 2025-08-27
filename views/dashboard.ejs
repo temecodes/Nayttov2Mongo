@@ -5,13 +5,10 @@
 </head>
 <body>
   <%- include("partials/header.ejs") %>
-
   <div class="min-h-screen flex items-center justify-center bg-gray-100 py-8 px-4">
     <div class="w-full max-w-md bg-white rounded-xl shadow-md p-8">
       <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Welcome, <%= user.name %>!</h1>
-
       <div class="space-y-6">
-        <!-- Change Password Button -->
         <form action="/change-password" method="GET">
           <button 
             type="submit" 
@@ -19,8 +16,6 @@
             Change Password
           </button>
         </form>
-
-        <!-- Request Account Data Button -->
         <form action="/request-data" method="GET">
           <button 
             type="submit" 
@@ -28,8 +23,6 @@
             Request Account Data
           </button>
         </form>
-
-        <!-- Delete Account Button -->
         <form action="/delete-account" method="POST">
           <button 
             type="submit" 
@@ -37,8 +30,6 @@
             Delete Account
           </button>
         </form>
-
-        <!-- Todo App Button -->
         <form action="/todo" method="GET">
           <button 
             type="submit" 
@@ -47,7 +38,6 @@
           </button>
         </form>
       </div>
-
       <div class="mt-6">
         <a href="/logout" 
            class="block text-center text-blue-600 hover:underline">
@@ -56,7 +46,6 @@
       </div>
     </div>
   </div>
-
   <%- include("partials/footer.ejs"); %>
 </body>
 </html>

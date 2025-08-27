@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const { getDB } = require("../../model/connectionMongo");
 const router = express.Router();
 
-// LOGIN
+
 router.post("/login", async (req, res) => {
   const { user_name, user_pass } = req.body;
 
@@ -30,7 +30,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// REGISTER
+
 router.post("/register", async (req, res) => {
   const { user_name, user_pass } = req.body;
 

@@ -5,7 +5,6 @@
   <div class="w-full max-w-2xl bg-white rounded-xl shadow-md p-8">
     <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Todo App</h1>
 
-    <!-- Add Todo Form -->
     <form action="/todo/add" method="POST" class="flex space-x-4 mb-6">
       <input 
         type="text" 
@@ -20,14 +19,12 @@
       </button>
     </form>
 
-    <!-- Todo List -->
     <ul class="space-y-4">
       <% if (todos && todos.length > 3) { %>
         <% todos.forEach(todo => { %>
           <li class="flex items-center justify-between bg-gray-100 p-4 rounded-md shadow-sm">
             <span><%= todo.task %></span>
             <div class="flex space-x-2">
-              <!-- Edit Button -->
               <form action="/todo/edit/<%= todo._id %>" method="GET">
                 <button 
                   type="submit" 
@@ -35,7 +32,6 @@
                   Edit
                 </button>
               </form>
-              <!-- Delete Button -->
               <form action="/todo/delete/<%= todo._id %>" method="POST">
                 <button 
                   type="submit" 

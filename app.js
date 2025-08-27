@@ -5,22 +5,22 @@ const bodyParser = require("body-parser");
 const MongoStore = require("connect-mongo");
 const { connectDB, getDB } = require("./model/connectionMongo");
 const bcrypt = require("bcrypt");
-const { ObjectId } = require("mongodb"); // Ensure ObjectId is imported
+const { ObjectId } = require("mongodb");
 
 const authRoutes = require("./server/routes/auth");
 
 const app = express();
 const PORT = 5000 || process.env.PORT;
 
-// Connect to MongoDB
+
 connectDB();
 
-// Middleware
+
 app.use(express.static("public"));
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configure session middleware with MongoDB
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "default_secret",
@@ -30,22 +30,22 @@ app.use(
       mongoUrl: process.env.MONGO_URI || "mongodb://127.0.0.1:27017",
       dbName: "nayttomongo",
     }),
-    cookie: { secure: false }, // Set secure: true if using HTTPS
+    cookie: { secure: false }, 
   })
 );
 
-// Set view engine
+
 app.set("view engine", "ejs");
 
-// Middleware to protect routes
+
 function requireLogin(req, res, next) {
   if (!req.session.user) {
-    return res.redirect("/"); // Redirect to the home page if not logged in
+    return res.redirect("/");
   }
   next();
 }
 
-// Routes
+
 app.use("/", authRoutes);
 
 app.get("", (req, res) => {
@@ -56,17 +56,17 @@ app.get("/register", (req, res) => {
   res.render("register");
 });
 
-// Protected route: Dashboard
+
 app.get("/dashboard", requireLogin, (req, res) => {
   res.render("dashboard", { user: req.session.user });
 });
 
-// Change password route
+
 app.get("/change-password", requireLogin, (req, res) => {
   res.render("change-password");
 });
 
-// Password change route
+
 app.post("/change-password", requireLogin, async (req, res) => {
   const { old_password, new_password } = req.body;
 
@@ -102,9 +102,8 @@ app.post("/change-password", requireLogin, async (req, res) => {
       { $set: { user_pass: hashedPassword } }
     );
 
-    // Destroy the session and log the user out
     req.session.destroy(() => {
-      res.redirect("/"); // Redirect to the login page after logout
+      res.redirect("/");
     });
   } catch (err) {
     console.error("Error changing password:", err);
@@ -112,10 +111,10 @@ app.post("/change-password", requireLogin, async (req, res) => {
   }
 });
 
-// Logout route
+
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
-    res.redirect("/"); // Redirect to the home page after logout
+    res.redirect("/");
   });
 });
 
@@ -123,14 +122,14 @@ app.get("/request-data", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Fetch user data from MongoDB
+    
     const user = await db.collection("users").findOne({ _id: new ObjectId(req.session.user.id) });
 
     if (!user) {
       return res.status(404).send("User not found");
     }
 
-    // Render the account data page with the user's data
+
     res.render("account-data", {
       user: {
         user_id: user._id,
@@ -151,15 +150,15 @@ app.post("/delete-account", requireLogin, async (req, res) => {
   try {
     const userId = new ObjectId(req.session.user.id);
 
-    // Delete the user from the database
+   
     await db.collection("users").deleteOne({ _id: userId });
 
-    // Delete all todos linked to the user
+   
     await db.collection("todos").deleteMany({ user_id: req.session.user.id });
 
-    // Destroy the session after deleting the user and their todos
+    
     req.session.destroy(() => {
-      res.redirect("/"); // Redirect to the home page after account deletion
+      res.redirect("/");
     });
   } catch (err) {
     console.error("Error deleting user and todos:", err);
@@ -167,14 +166,14 @@ app.post("/delete-account", requireLogin, async (req, res) => {
   }
 });
 
-// Fetch and display todos
+
 app.get("/todo", requireLogin, async (req, res) => {
   const db = getDB();
   const todos = await db.collection("todos").find({ user_id: req.session.user.id }).toArray();
   res.render("todo", { user: req.session.user, todos, page: "todo" });
 });
 
-// Add a new todo
+
 app.post("/todo/add", requireLogin, async (req, res) => {
   const { task } = req.body;
   const db = getDB();
@@ -186,15 +185,15 @@ app.post("/todo/add", requireLogin, async (req, res) => {
   res.redirect("/todo");
 });
 
-// Delete a todo
+
 app.post("/todo/delete/:id", requireLogin, async (req, res) => {
   const { id } = req.params;
   const db = getDB();
 
   try {
-    // Convert the id to ObjectId
+    
     await db.collection("todos").deleteOne({
-      _id: new ObjectId(id), // Use the imported ObjectId
+      _id: new ObjectId(id), 
       user_id: req.session.user.id,
     });
     res.redirect("/todo");
@@ -204,12 +203,12 @@ app.post("/todo/delete/:id", requireLogin, async (req, res) => {
   }
 });
 
-// Data request route
+
 app.get("/data", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Fetch data for the logged-in user
+    
     const data = await db.collection("data").find({ user_id: req.session.user.id }).toArray();
 
     if (!data || data.length === 0) {
@@ -228,14 +227,14 @@ app.get("/todo/edit/:id", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Fetch the todo by its ID
+   
     const todo = await db.collection("todos").findOne({ _id: new ObjectId(id), user_id: req.session.user.id });
 
     if (!todo) {
       return res.status(404).send("Todo not found");
     }
 
-    // Render the edit form
+   
     res.render("edit-todo", { todo });
   } catch (err) {
     console.error("Error fetching todo for edit:", err);
@@ -249,7 +248,7 @@ app.post("/todo/edit/:id", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Update the todo in the database
+    
     await db.collection("todos").updateOne(
       { _id: new ObjectId(id), user_id: req.session.user.id },
       { $set: { task } }
@@ -266,12 +265,12 @@ app.post("/delete-user", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Delete the user from the database
+   
     await db.collection("users").deleteOne({ _id: new ObjectId(req.session.user.id) });
 
-    // Destroy the session after deleting the user
+   
     req.session.destroy(() => {
-      res.redirect("/"); // Redirect to the home page after deletion
+      res.redirect("/");
     });
   } catch (err) {
     console.error("Error deleting user:", err);
