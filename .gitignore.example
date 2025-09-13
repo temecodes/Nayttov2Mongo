@@ -1,2 +1,6 @@
 .env
 node_modules/
+.dist
+.gitignore
+server.key
+server.cert

@@ -79,26 +79,24 @@ app.post("/change-password", requireLogin, async (req, res) => {
   const db = getDB();
 
   try {
-    // Convert session user ID to ObjectId
+
     const userId = new ObjectId(req.session.user.id);
 
-    // Find the user by their ObjectId
+
     const user = await db.collection("users").findOne({ _id: userId });
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Verify the old password
+
     const isMatch = await bcrypt.compare(old_password, user.user_pass);
     if (!isMatch) {
       return res.status(401).json({ error: "Old password is incorrect" });
     }
 
-    // Hash the new password
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
-    // Update the user's password
     await db.collection("users").updateOne(
       { _id: userId },
       { $set: { user_pass: hashedPassword } }
