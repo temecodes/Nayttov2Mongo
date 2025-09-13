@@ -1,10 +1,40 @@
 <%- include("partials/header.ejs") %>
 
+  <script>
+    async function handleRegister(event) {
+      event.preventDefault(); // Prevent the browser to execute the default form submission
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch("/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        window.location.href = "/dashboard";
+      } else {
+        const result = await response.json();
+        alert(result.error);
+      }
+    } catch (err) {
+      console.error("Error during registration:", err);
+      alert("An unexpected error occurred. Please try again.");
+    }
+  }
+</script>
+
 <div class="min-h-screen flex items-center justify-center bg-blue-50 py-8 px-4">
   <div class="w-full max-w-md bg-white rounded-xl shadow-lg border border-blue-300 p-8">
     <h1 class="text-3xl font-extrabold text-center text-blue-700 mb-6">Create Your Account</h1>
     
-    <form action="/register" method="POST" class="space-y-6">
+    <form action="/register" method="POST" class="space-y-6" onsubmit="handleRegister(event)">
       <div>
         <label for="user_name" class="block text-gray-700 font-medium mb-2">Username</label>
         <input 
@@ -35,7 +65,7 @@
     <div class="mt-6">
       <a href="/" 
          class="block text-center text-blue-600 hover:underline">
-        Back to Login
+        Already have an account? Login
       </a>
     </div>
   </div>

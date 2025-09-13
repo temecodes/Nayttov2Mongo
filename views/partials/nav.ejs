@@ -9,10 +9,15 @@
         <a class="text-gray-700 hover:text-blue-600" href="/request-data">Request Account Data</a>
       </li>
       <li>
-        <a class="text-gray-700 hover:text-blue-600" href="/delete-account">Delete Account</a>
+        <form action="/delete-account" method="POST" style="display: inline;">
+          <button type="submit" class="text-gray-700 hover:text-blue-600">Delete Account</button>
+        </form>
       </li>
       <li>
         <a class="text-gray-700 hover:text-blue-600" href="/logout">Logout</a>
+      </li>
+      <li>
+        <a href="/privacy" class="text-gray-700 hover:text-blue-600 transition">Privacy Policy</a>
       </li>
     </ul>
   </div>

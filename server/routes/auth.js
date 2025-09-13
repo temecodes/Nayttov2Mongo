@@ -15,7 +15,7 @@ router.post("/login", async (req, res) => {
   const user = await db.collection("users").findOne({ user_name });
 
   if (!user) {
-    return res.status(401).send("Invalid credentials");
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 
   const match = await bcrypt.compare(user_pass, user.user_pass);
@@ -26,7 +26,7 @@ router.post("/login", async (req, res) => {
     };
     return res.redirect("/dashboard");
   } else {
-    return res.status(401).send("Invalid credentials");
+    return res.status(401).json({ error: "Invalid credentials" });
   }
 });
 
