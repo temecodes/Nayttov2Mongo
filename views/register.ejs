@@ -5,8 +5,7 @@
       event.preventDefault(); // Prevent the browser to execute the default form submission
 
     const form = event.target;
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
+    const data = Object.fromEntries(new FormData(form));
 
     try {
       const response = await fetch("/register", {
