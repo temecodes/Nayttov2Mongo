@@ -32,12 +32,13 @@ app.use(
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URI || "mongodb://127.0.0.1:27017",
-      dbName: "nayttomongo",
+      dbName: "Tätäeioleolemassa",
     }),
     cookie: { 
       secure: false, 
       httpOnly: true,
-      sameSite: "lax"}, 
+      sameSite: "lax"
+    },
   })
 );
 
@@ -107,18 +108,18 @@ app.get("/request-data", requireLogin, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error fetching user data:", err);
+    console.error("Error fetching user data:", err); 
     res.status(500).send("Internal server error");
   }
 });
 
 app.get("/todo", requireLogin, async (req, res) => {
   const db = getDB();
-  const todos = await db.collection("todos").find({ user_id: req.session.user.id }).toArray();
+  const todos = await db.collection("todos").find({ user_id: req.session.user.id }).toArray(); 
   res.render("todo", { user: req.session.user, todos, page: "todo" });
 });
 
-app.get("/todo/edit/:id", requireLogin, async (req, res) => {
+app.get("/todo/edit/:id", requireLogin, async (req, res) => { 
   const { id } = req.params;
   const db = getDB();
 
@@ -136,7 +137,7 @@ app.get("/todo/edit/:id", requireLogin, async (req, res) => {
   }
 });
 
-app.post("/change-password", requireLogin, async (req, res) => {
+app.post("/change-password", requireLogin, async (req, res) => { 
   const { old_password, new_password } = req.body;
 
   if (!old_password || !new_password) {
@@ -160,7 +161,7 @@ app.post("/change-password", requireLogin, async (req, res) => {
       return res.status(401).json({ error: "Old password is incorrect" });
     }
 
-    const hashedPassword = await bcrypt.hash(new_password, 10);
+    const hashedPassword = await bcrypt.hash(new_password, 10); 
 
     await db.collection("users").updateOne(
       { _id: userId },
